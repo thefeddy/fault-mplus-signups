@@ -39,7 +39,7 @@ const server = http.createServer();
 
 /* Discord Client */
 const client = new Client({
-    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent]
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildScheduledEvents]
 });
 
 /* Define Discord slash commands */
@@ -165,40 +165,72 @@ client.on('interactionCreate', async interaction => {
 
     if (commandName === 'form') {
         const id = options.getString('id');
+
+        const getEmojiForGroup = (group) => {
+            switch (group) {
+                case 'dps':
+                    return process.env.EMOJI_DPS || '';
+                case 'tanks':
+                    return process.env.EMOJI_TANK || '';
+                case 'healers':
+                    return process.env.EMOJI_HEALER || '';
+                case 'aug':
+                    return process.env.EMOJI_AUG || '';
+                default:
+                    return '';
+            }
+        }
+
         collection.findOne({ id }).then((res) => {
             const players = res.players;
             const groups = [];
             let message = '';
 
-            if (players.tanks.length > 0 && players.healers.length > 0 && players.aug.length > 0 && players.dps.length > 0) {
-                // Shuffle player arrays
-                players.tanks = players.tanks.map(value => ({ value, sort: Math.random() }))
-                    .sort((a, b) => a.sort - b.sort).map(({ value }) => value);
-                players.healers = players.healers.map(value => ({ value, sort: Math.random() }))
-                    .sort((a, b) => a.sort - b.sort).map(({ value }) => value);
-                players.dps = players.dps.map(value => ({ value, sort: Math.random() }))
-                    .sort((a, b) => a.sort - b.sort).map(({ value }) => value);
-                players.aug = players.aug.map(value => ({ value, sort: Math.random() }))
-                    .sort((a, b) => a.sort - b.sort).map(({ value }) => value);
+            message = Object.keys(players).map(group => {
+                const emoji = getEmojiForGroup(group);
+                const groupHeader = `\n${emoji} ${group.toUpperCase()}:\n`;
+                const groupData = players[group].map((user, index, array) => {
+                    let entry = `${user.globalName}`;
+                    // Remove the trailing comma for the last entry in the group
+                    if (index === array.length - 1) {
+                        entry = entry.replace(/, $/, '');
+                    }
+                    return entry;
+                }).join('\n');
+                return groupHeader + groupData;
+            }).join('\n\n');
 
-                // Create groups until no players are left
-                while (players.tanks.length > 0 || players.healers.length > 0 || players.aug.length > 0 || players.dps.length > 0) {
-                    const grabbedPlayers = grabAndRemovePlayers(players);
-                    groups.push(grabbedPlayers);
-                }
+            console.log(message)
 
-                // Construct message for each group
-                for (const [index, group] of groups.entries()) {
-                    message += group.tank == null ? `**Group ${index + 1} (Tentative)**\n\u200B` : `**Group ${index + 1}**\n\u200B`;
-                    if (group.tank != null) message += `    ${process.env.EMOJI_TANK}  ${group.tank.username}\n`;
-                    if (group.healer != null) message += `    ${process.env.EMOJI_HEALER}  ${group.healer.username}\n`;
-                    if (group.aug != null) message += `    ${process.env.EMOJI_AUG}  ${group.aug.username}\n`;
-                    if (group.dps.length != 0) group.dps.forEach(player => message += `    ${process.env.EMOJI_DPS}  ${player.username}\n`);
-                    message += `\n`;
-                }
-            } else {
-                message = 'There are no players to form groups';
-            }
+            // if (players.tanks.length > 0 && players.healers.length > 0 && players.aug.length > 0 && players.dps.length > 0) {
+            //     // Shuffle player arrays
+            //     players.tanks = players.tanks.map(value => ({ value, sort: Math.random() }))
+            //         .sort((a, b) => a.sort - b.sort).map(({ value }) => value);
+            //     players.healers = players.healers.map(value => ({ value, sort: Math.random() }))
+            //         .sort((a, b) => a.sort - b.sort).map(({ value }) => value);
+            //     players.dps = players.dps.map(value => ({ value, sort: Math.random() }))
+            //         .sort((a, b) => a.sort - b.sort).map(({ value }) => value);
+            //     players.aug = players.aug.map(value => ({ value, sort: Math.random() }))
+            //         .sort((a, b) => a.sort - b.sort).map(({ value }) => value);
+
+            //     // Create groups until no players are left
+            //     while (players.tanks.length > 0 || players.healers.length > 0 || players.aug.length > 0 || players.dps.length > 0) {
+            //         const grabbedPlayers = grabAndRemovePlayers(players);
+            //         groups.push(grabbedPlayers);
+            //     }
+
+            //     // Construct message for each group
+            //     for (const [index, group] of groups.entries()) {
+            //         message += group.tank == null ? `**Group ${index + 1} (Tentative)**\n\u200B` : `**Group ${index + 1}**\n\u200B`;
+            //         if (group.tank != null) message += `    ${process.env.EMOJI_TANK}  ${group.tank.username}\n`;
+            //         if (group.healer != null) message += `    ${process.env.EMOJI_HEALER}  ${group.healer.username}\n`;
+            //         if (group.aug != null) message += `    ${process.env.EMOJI_AUG}  ${group.aug.username}\n`;
+            //         if (group.dps.length != 0) group.dps.forEach(player => message += `    ${process.env.EMOJI_DPS}  ${player.username}\n`);
+            //         message += `\n`;
+            //     }
+            // } else {
+            //     message = 'There are no players to form groups';
+            // }
 
             interaction.reply({
                 content: message,

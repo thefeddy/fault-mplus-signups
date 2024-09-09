@@ -1,14 +1,15 @@
 const updatePlayers = async (document, user, group, collection) => {
     const { players, post } = document;
     const playerIndex = players[group].findIndex(obj => obj.id === user.id);
+    console.log(playerIndex)
     const action = playerIndex !== -1 ? 'Removing' : 'Adding';
 
-    // if (playerIndex !== -1) {
-    //     players[group].splice(playerIndex, 1);
-    // } else {
-    //     players[group].push(user);
-    // }
-    players[group].push(user);
+    if (playerIndex !== -1) {
+        players[group].splice(playerIndex);
+    } else {
+        players[group].push(user);
+    }
+
     await collection.updateOne(
         { post },
         {

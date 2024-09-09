@@ -1,16 +1,19 @@
 const moment = require('moment');
-
+const { GuildScheduledEventPrivacyLevel, GuildScheduledEventEntityType } = require('discord.js');
 /* Utils */
 const generateRandomString = require('../utils/generateRandomString');
 
-const signup = async (interaction, collection) => {
+const signup = async (interaction, collection, guild) => {
 
 
 
     const { options, user } = interaction;
 
     const dateString = options.getString('datetime');
-    const date = moment(dateString).format('MM/DD/YY HH:mm:ss');
+    const date = moment(dateString, 'MM/DD/YY HH:mm:ss')
+    console.log(date)
+
+    const startTime = date.toDate();
     const unixTimestamp = moment(date).unix();
     const id = generateRandomString(5);
     const idMessage = `Please save this id: **${id}**, as it's needed to generate the parties for **<t:${unixTimestamp}:F>** groups`;
@@ -54,11 +57,24 @@ const signup = async (interaction, collection) => {
     const reply = await interaction.reply({
         content: message,
         components: [buttons],
+        fetchReply: true
     });
+
+    await reply.pin();
+
     const thread = await interaction.followUp({
         content: idMessage,
         ephemeral: true
     });
+
+    // const event = await interaction.guild.scheduledEvents.create({
+    //     name: 'My Event',  // Name of the event
+    //     scheduledStartTime: startTime, // Start time of the event
+    //     scheduledEndTime: new Date(date.add(2, 'hours').toISOString()), // Optional: Set event end time, here 2 hours after start
+    //     privacyLevel: 'GuildOnly',
+    //     entityType: '2',
+    // });
+
 
     await collection.insertOne({
         id: id,
@@ -77,7 +93,7 @@ const signup = async (interaction, collection) => {
 
     // Create the Sign Up's Thread.
     const createdThread = await interaction.channel.threads.create({
-        name: `Signups`,
+        name: `Signups For ${date}`,
         autoArchiveDuration: 10080, // Set the auto-archive duration in minutes
     });
 }
