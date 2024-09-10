@@ -1,7 +1,6 @@
 const updatePlayers = async (document, user, group, collection) => {
     const { players, post } = document;
     const playerIndex = players[group].findIndex(obj => obj.id === user.id);
-    console.log(playerIndex)
     const action = playerIndex !== -1 ? 'Removing' : 'Adding';
 
     if (playerIndex !== -1) {

@@ -1,12 +1,8 @@
 const moment = require('moment');
-const { GuildScheduledEventPrivacyLevel, GuildScheduledEventEntityType } = require('discord.js');
 /* Utils */
 const generateRandomString = require('../utils/generateRandomString');
 
 const signup = async (interaction, collection, guild) => {
-
-
-
     const { options, user } = interaction;
 
     const dateString = options.getString('datetime');
@@ -57,10 +53,10 @@ const signup = async (interaction, collection, guild) => {
     const reply = await interaction.reply({
         content: message,
         components: [buttons],
-        fetchReply: true
+
     });
 
-    await reply.pin();
+
 
     const thread = await interaction.followUp({
         content: idMessage,
@@ -75,7 +71,7 @@ const signup = async (interaction, collection, guild) => {
     //     entityType: '2',
     // });
 
-
+    console.log(reply.id)
     await collection.insertOne({
         id: id,
         post: reply.id,
