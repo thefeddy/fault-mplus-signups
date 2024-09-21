@@ -1,5 +1,4 @@
 require('dotenv').config();
-
 /* NodeJS  */
 const http = require('http');
 
@@ -11,6 +10,7 @@ const { Client, GatewayIntentBits } = require('discord.js');
 /* Discord Commands */
 const signup = require('./commands/signup');
 const join = require('./commands/join');
+const form = require('./commands/form');
 
 /* MongoDB */
 const { MongoClient } = require('mongodb');
@@ -78,7 +78,7 @@ const rest = new REST({ version: '9' }).setToken(process.env.DISCORD_TOKEN);
 (async () => {
     try {
         console.log('Started refreshing application (/) commands.');
-        await rest.put(
+        const registeredCommands = await rest.put(
             Routes.applicationGuildCommands(process.env.DISCORD_CLIENT_ID, process.env.DISCORD_GUILD_ID),
             { body: commands },
         );
@@ -96,56 +96,7 @@ client.on('ready', () => {
     console.log(`Logged in as ${client.user.tag}!`);
 });
 
-/**
- * Function to form and remove players from the 'players' pool based on their roles.
- * Modifies the input 'players' by removing the selected players and returns the grabbed players.
- * @param {Object} players - Object containing arrays of players grouped by role (tanks, healers, dps, aug).
- * @returns {Object} grabbedPlayers - The players grabbed for the current group.
- */
-function grabAndRemovePlayers(players) {
-    const tank = players.tanks.length ? players.tanks[players.tanks.length - 1] : null;
-    const healer = players.healers.length ? players.healers[players.healers.length - 1] : null;
-    const aug = players.aug.length ? players.aug[players.aug.length - 1] : null;
-    const copiedDPS = players.dps.slice();
-    const dps = copiedDPS.length ? (players.aug.length ? copiedDPS.splice(0, 2) : copiedDPS.splice(0, 3)) : [];
 
-    const grabbedPlayers = { tank, healer, aug, dps };
-
-    // Remove each player from their respective role arrays
-    if (grabbedPlayers.tank) {
-        const index = players.tanks.indexOf(grabbedPlayers.tank);
-        if (index !== -1) players.tanks.splice(index, 1);
-        const dpsIndex = players.dps.findIndex(dpsPlayer => dpsPlayer.id === grabbedPlayers.tank.id);
-        if (dpsIndex !== -1) players.dps.splice(dpsIndex, 1);
-    }
-
-    if (grabbedPlayers.healer) {
-        const index = players.healers.indexOf(grabbedPlayers.healer);
-        if (index !== -1) players.healers.splice(index, 1);
-        const dpsIndex = players.dps.findIndex(dpsPlayer => dpsPlayer.id === grabbedPlayers.healer.id);
-        if (dpsIndex !== -1) players.dps.splice(dpsIndex, 1);
-    }
-
-    if (grabbedPlayers.aug) {
-        const index = players.aug.findIndex(augPlayer => augPlayer.id === grabbedPlayers.aug.id);
-        if (index !== -1) players.aug.splice(index, 1);
-        const dpsIndex = players.dps.findIndex(dpsPlayer => dpsPlayer.id === grabbedPlayers.aug.id);
-        if (dpsIndex !== -1) players.dps.splice(dpsIndex, 1);
-    }
-
-    grabbedPlayers.dps.forEach((dps) => {
-        const index = players.dps.indexOf(dps);
-        if (index !== -1) players.dps.splice(index, 1);
-        const tankIndex = players.tanks.findIndex(tankPlayer => tankPlayer.id === dps.id);
-        if (tankIndex !== -1) players.tanks.splice(tankIndex, 1);
-        const healerIndex = players.healers.findIndex(healerPlayer => healerPlayer.id === dps.id);
-        if (healerIndex !== -1) players.healers.splice(healerIndex, 1);
-        const augIndex = players.aug.findIndex(augPlayer => augPlayer.id === dps.id);
-        if (augIndex !== -1) players.aug.splice(augIndex, 1);
-    });
-
-    return grabbedPlayers;
-}
 
 /**
  * Event listener for Discord interaction commands.
@@ -164,79 +115,7 @@ client.on('interactionCreate', async interaction => {
     }
 
     if (commandName === 'form') {
-        const id = options.getString('id');
-
-        const getEmojiForGroup = (group) => {
-            switch (group) {
-                case 'dps':
-                    return process.env.EMOJI_DPS || '';
-                case 'tanks':
-                    return process.env.EMOJI_TANK || '';
-                case 'healers':
-                    return process.env.EMOJI_HEALER || '';
-                case 'aug':
-                    return process.env.EMOJI_AUG || '';
-                default:
-                    return '';
-            }
-        }
-
-        collection.findOne({ id }).then((res) => {
-            const players = res.players;
-            const groups = [];
-            let message = '';
-
-            message = Object.keys(players).map(group => {
-                const emoji = getEmojiForGroup(group);
-                const groupHeader = `\n${emoji} ${group.toUpperCase()}:\n`;
-                const groupData = players[group].map((user, index, array) => {
-                    let entry = `${user.globalName}`;
-                    // Remove the trailing comma for the last entry in the group
-                    if (index === array.length - 1) {
-                        entry = entry.replace(/, $/, '');
-                    }
-                    return entry;
-                }).join('\n');
-                return groupHeader + groupData;
-            }).join('\n\n');
-
-            console.log(message)
-
-            // if (players.tanks.length > 0 && players.healers.length > 0 && players.aug.length > 0 && players.dps.length > 0) {
-            //     // Shuffle player arrays
-            //     players.tanks = players.tanks.map(value => ({ value, sort: Math.random() }))
-            //         .sort((a, b) => a.sort - b.sort).map(({ value }) => value);
-            //     players.healers = players.healers.map(value => ({ value, sort: Math.random() }))
-            //         .sort((a, b) => a.sort - b.sort).map(({ value }) => value);
-            //     players.dps = players.dps.map(value => ({ value, sort: Math.random() }))
-            //         .sort((a, b) => a.sort - b.sort).map(({ value }) => value);
-            //     players.aug = players.aug.map(value => ({ value, sort: Math.random() }))
-            //         .sort((a, b) => a.sort - b.sort).map(({ value }) => value);
-
-            //     // Create groups until no players are left
-            //     while (players.tanks.length > 0 || players.healers.length > 0 || players.aug.length > 0 || players.dps.length > 0) {
-            //         const grabbedPlayers = grabAndRemovePlayers(players);
-            //         groups.push(grabbedPlayers);
-            //     }
-
-            //     // Construct message for each group
-            //     for (const [index, group] of groups.entries()) {
-            //         message += group.tank == null ? `**Group ${index + 1} (Tentative)**\n\u200B` : `**Group ${index + 1}**\n\u200B`;
-            //         if (group.tank != null) message += `    ${process.env.EMOJI_TANK}  ${group.tank.username}\n`;
-            //         if (group.healer != null) message += `    ${process.env.EMOJI_HEALER}  ${group.healer.username}\n`;
-            //         if (group.aug != null) message += `    ${process.env.EMOJI_AUG}  ${group.aug.username}\n`;
-            //         if (group.dps.length != 0) group.dps.forEach(player => message += `    ${process.env.EMOJI_DPS}  ${player.username}\n`);
-            //         message += `\n`;
-            //     }
-            // } else {
-            //     message = 'There are no players to form groups';
-            // }
-
-            interaction.reply({
-                content: message,
-                ephemeral: true
-            });
-        });
+        form(interaction, collection, options);
     }
 });
 
@@ -252,3 +131,8 @@ client.on('interactionCreate', async (interaction) => {
 /* Start the Discord client and HTTP server */
 client.login(process.env.DISCORD_TOKEN);
 server.listen(process.env.PORT, process.env.IP);
+
+
+
+
+

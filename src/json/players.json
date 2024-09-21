@@ -1,0 +1,70 @@
+{
+    "tanks": [
+        {
+            "id": "t1",
+            "username": "TankMaster"
+        },
+        {
+            "id": "t2",
+            "username": "ShieldBearer"
+        },
+        {
+            "id": "t3",
+            "username": "TankDPS"
+        }
+    ],
+    "healers": [
+        {
+            "id": "h1",
+            "username": "HealingWave"
+        },
+        {
+            "id": "h2",
+            "username": "LifeGiver"
+        },
+        {
+            "id": "h3",
+            "username": "HealDPS"
+        }
+    ],
+    "dps": [
+        {
+            "id": "d1",
+            "username": "BladeStriker"
+        },
+        {
+            "id": "d2",
+            "username": "ArrowStorm"
+        },
+        {
+            "id": "d3",
+            "username": "FireMage"
+        },
+        {
+            "id": "d4",
+            "username": "ShadowHunter"
+        },
+        {
+            "id": "d5",
+            "username": "LightningBolt"
+        },
+        {
+            "id": "t3",
+            "username": "TankDPS"
+        },
+        {
+            "id": "h3",
+            "username": "HealDPS"
+        }
+    ],
+    "aug": [
+        {
+            "id": "a1",
+            "username": "Augmenter"
+        },
+        {
+            "id": "a2",
+            "username": "SupportBooster"
+        }
+    ]
+}

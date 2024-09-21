@@ -46,8 +46,16 @@ const join = async (interaction, collection) => {
 
     const document = await collection.findOne({ post: id });
     const update = updatePlayers(document, user, customId, collection).then((res) => {
+        let message;
+
+        if (res === 'Adding') {
+            message = `${emoji} ${res} you to the **${customId.toUpperCase()}** group.`;
+        } else {
+            message = `${emoji} ${res} you from the **${customId.toUpperCase()}** group.`
+        }
+
         interaction.reply({
-            content: `${emoji} ${res} you as a **${customId.toUpperCase()}**`,
+            content: message,
             ephemeral: true
         });
     });
