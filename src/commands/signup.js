@@ -31,10 +31,7 @@ ${process.env.EMOJI_AUG}  - I'm an augmentation evoker!\n\u200B`;
                 type: 2,
                 style: 2,
                 customId: 'tanks',
-                emoji: {
-                    id: '1120529273715957832', // Use emoji ID here
-                    name: 'dragonYay', // Emoji name
-                },
+                label: '🛡️'
             },
             {
                 type: 2,
@@ -52,10 +49,7 @@ ${process.env.EMOJI_AUG}  - I'm an augmentation evoker!\n\u200B`;
                 type: 2,
                 style: 1,
                 customId: 'aug',
-                emoji: {
-                    id: '1002324281021177896', // Use emoji ID here
-                    name: 'dragonYay', // Emoji name
-                },
+                label: '🐉'
             },
         ],
     };
