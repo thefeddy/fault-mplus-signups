@@ -1,14 +1,40 @@
-const moment = require('moment');
+
+const moment = require('moment-timezone');
+
 /* Utils */
 const generateRandomString = require('../utils/generateRandomString');
 
 const signup = async (interaction, collection, guild) => {
+
     const { options, user } = interaction;
+
     const dateString = options.getString('datetime');
+    const timezoneAbbreviation = dateString.slice(-3);
+    const timezoneMapping = {
+        'EST': 'America/New_York',
+        'EDT': 'America/New_York',  // Eastern Daylight Time
+        'PST': 'America/Los_Angeles',
+        'PDT': 'America/Los_Angeles',  // Pacific Daylight Time
+        'CST': 'America/Chicago',
+        'CDT': 'America/Chicago',  // Central Daylight Time
+        'MST': 'America/Denver',
+        'MDT': 'America/Denver',  // Mountain Daylight Time
+        'GMT': 'Europe/London',
+        'BST': 'Europe/London'  // British Summer Time (GMT during DST)
+    };
+
+    const timezone = timezoneMapping[timezoneAbbreviation] || 'PST';
+    const cleanedDateString = dateString.slice(0, -4);
+
     const date = moment(dateString, 'MM/DD/YYYY HH:mm:ss');
     const dateThreadNaming = moment(dateString).format('MM/DD/YYYY');
+
     const startTime = date.toDate();
-    const unixTimestamp = moment(dateString).unix();
+    const momentDate = moment.tz(cleanedDateString, "M/D/YY h:mm A", timezone);
+
+    // Get Unix timestamp (seconds since epoch)
+    const unixTimestamp = momentDate.unix();
+
     const id = generateRandomString(5);
     const idMessage = `Please save this id: **${id}**, as it's needed to generate the parties for **<t:${unixTimestamp}:F>** groups`;
 
