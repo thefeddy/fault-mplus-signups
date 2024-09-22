@@ -8,8 +8,9 @@ const signup = async (interaction, collection, guild) => {
 
     const { options, user } = interaction;
 
-    const dateString = options.getString('datetime');
-    const timezoneAbbreviation = dateString.slice(-3);
+    const dateString = options.getString('datetime').toUpperCase();
+    const timezoneAbbreviation = dateString.slice(-3)
+    console.log(timezoneAbbreviation)
     const timezoneMapping = {
         'EST': 'America/New_York',
         'EDT': 'America/New_York',  // Eastern Daylight Time
@@ -26,11 +27,11 @@ const signup = async (interaction, collection, guild) => {
     const timezone = timezoneMapping[timezoneAbbreviation] || 'PST';
     const cleanedDateString = dateString.slice(0, -4);
 
-    const date = moment(dateString, 'MM/DD/YYYY HH:mm:ss');
     const dateThreadNaming = moment(dateString).format('MM/DD/YYYY');
-
-    const startTime = date.toDate();
+    console.log(dateThreadNaming)
     const momentDate = moment.tz(cleanedDateString, "M/D/YY h:mm A", timezone);
+    const endDate = momentDate.clone().add(2, 'hours');
+
 
     // Get Unix timestamp (seconds since epoch)
     const unixTimestamp = momentDate.unix();
@@ -90,8 +91,8 @@ ${process.env.EMOJI_AUG}  - I'm an augmentation evoker!\n\u200B`;
 
     const event = await interaction.guild.scheduledEvents.create({
         name: 'M+ Night',  // Name of the event
-        scheduledStartTime: startTime, // Start time of the event
-        scheduledEndTime: new Date(date.add(2, 'hours').toISOString()), // Optional: Set event end time, here 2 hours after start
+        scheduledStartTime: momentDate, // Start time of the event
+        scheduledEndTime: endDate, // Optional: Set event end time, here 2 hours after start
         privacyLevel: 2, // 2 means GUILD_ONLY (only server members can see)
         entityType: 3, // 3 means EXTERNAL (for external or non-voice-channel events)
         entityMetadata: {
@@ -99,7 +100,7 @@ ${process.env.EMOJI_AUG}  - I'm an augmentation evoker!\n\u200B`;
         },
     });
 
-    console.log(reply.id)
+
     await collection.insertOne({
         id: id,
         post: reply.id,
