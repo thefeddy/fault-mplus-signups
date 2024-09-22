@@ -4,14 +4,11 @@ const generateRandomString = require('../utils/generateRandomString');
 
 const signup = async (interaction, collection, guild) => {
     const { options, user } = interaction;
-    console.clear();
     const dateString = options.getString('datetime');
-    console.log(dateString);
-    const date = moment(dateString, 'MM/DD/YYYY HH:mm:ss')
-    console.log(date)
-
+    const date = moment(dateString, 'MM/DD/YYYY HH:mm:ss');
+    const dateThreadNaming = moment(dateString).format('MM/DD/YYYY');
     const startTime = date.toDate();
-    const unixTimestamp = moment(date).unix();
+    const unixTimestamp = moment(dateString).unix();
     const id = generateRandomString(5);
     const idMessage = `Please save this id: **${id}**, as it's needed to generate the parties for **<t:${unixTimestamp}:F>** groups`;
 
@@ -94,7 +91,7 @@ ${process.env.EMOJI_AUG}  - I'm an augmentation evoker!\n\u200B`;
 
     // Create the Sign Up's Thread.
     const createdThread = await interaction.channel.threads.create({
-        name: `Signups For ${date}`,
+        name: `Signups For ${dateThreadNaming}`,
         autoArchiveDuration: 10080, // Set the auto-archive duration in minutes
     });
 }
