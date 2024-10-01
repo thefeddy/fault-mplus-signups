@@ -10,7 +10,6 @@ const signup = async (interaction, collection, guild) => {
 
     const dateString = options.getString('datetime').toUpperCase();
     const timezoneAbbreviation = dateString.slice(-3)
-    console.log(timezoneAbbreviation)
     const timezoneMapping = {
         'EST': 'America/New_York',
         'EDT': 'America/New_York',  // Eastern Daylight Time
@@ -27,9 +26,8 @@ const signup = async (interaction, collection, guild) => {
     const timezone = timezoneMapping[timezoneAbbreviation] || 'PST';
     const cleanedDateString = dateString.slice(0, -4);
 
-    const dateThreadNaming = moment(dateString).format('MM/DD/YYYY');
-    console.log(dateThreadNaming)
-    const momentDate = moment.tz(cleanedDateString, "M/D/YY h:mm A", timezone);
+    const dateThreadNaming = moment.tz(cleanedDateString, 'M/D/YY h:mm a', timezone).format('M/D/YY h:mm A z');
+    const momentDate = moment.tz(cleanedDateString, 'M/D/YY h:mm A', timezone);
     const endDate = momentDate.clone().add(2, 'hours');
 
 
@@ -39,13 +37,17 @@ const signup = async (interaction, collection, guild) => {
     const id = generateRandomString(5);
     const idMessage = `Please save this id: **${id}**, as it's needed to generate the parties for **<t:${unixTimestamp}:F>** groups`;
 
-    const message = `Signups for M+ **<t:${unixTimestamp}:F>** \n\nSign up for as many roles as you want, and post in thread any comments (if you'll be late, etc.)\n
-${process.env.EMOJI_TANK} - I can tank\n
-${process.env.EMOJI_HEALER} - I can heal\n
-${process.env.EMOJI_DPS} - I can DPS\n
-${process.env.EMOJI_AUG}  - I'm an augmentation evoker!\n\u200B`;
 
-    const channelId = process.env.CHANNEL_ID; // Replace with the actual text channel ID
+    /* Message */
+
+
+    const message = `Signups for M+ **<t:${unixTimestamp}:F>** \n\nSign up for as many roles as you want, and post in thread any comments (if you'll be late, etc.)\n
+    ${process.env.EMOJI_TANK} - I can tank\n
+    ${process.env.EMOJI_HEALER} - I can heal\n
+    ${process.env.EMOJI_DPS} - I can DPS\n
+    ${process.env.EMOJI_AUG}  - I'm an Augmentation Evoker!\n\u200B`;
+
+    const channelId = interaction.channelId; // Replace with the actual text channel ID
     const channelLink = `<#${channelId}>`
 
     const buttons = {
@@ -105,6 +107,7 @@ ${process.env.EMOJI_AUG}  - I'm an augmentation evoker!\n\u200B`;
         id: id,
         post: reply.id,
         thread: thread.id,
+        timestamp: unixTimestamp,
         players: {
             dps: [],
             tanks: [],
@@ -113,8 +116,6 @@ ${process.env.EMOJI_AUG}  - I'm an augmentation evoker!\n\u200B`;
         }
     });
     await user.send(idMessage);
-    // Pin the Sign Up
-    // await sentMessage.pin();
 
     // Create the Sign Up's Thread.
     const createdThread = await interaction.channel.threads.create({

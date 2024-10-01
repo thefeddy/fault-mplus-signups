@@ -3,9 +3,18 @@ const { EmbedBuilder } = require('discord.js');
 
 /* Utils */
 const shuffleArray = require('../utils/shuffleArray');
+
+const sortGroups = (players) => {
+    for (player in players) {
+        console.log(players[player]);
+    }
+}
+
 const createGroups = (players) => {
-    console.log(players)
+    console.clear();
+
     const groups = [];
+
     let tanks = shuffleArray([...players.tanks]);
     let healers = shuffleArray([...players.healers]);
     let dps = shuffleArray([...players.dps]);
@@ -14,7 +23,7 @@ const createGroups = (players) => {
     // Track players with multiple roles
     const playerRoleCount = {};
 
-    // Helper function to increment role count for each player
+    // Helper function to count roles for each player
     const countPlayerRoles = (playerArray, role) => {
         playerArray.forEach(player => {
             if (!playerRoleCount[player.id]) {
@@ -24,13 +33,17 @@ const createGroups = (players) => {
         });
     };
 
-    // Count roles for each player
+    // Count roles for all players
     countPlayerRoles(tanks, 'tank');
     countPlayerRoles(healers, 'healer');
     countPlayerRoles(dps, 'dps');
     countPlayerRoles(augs, 'aug');
 
-    // Function to remove a player from all roles
+
+    sortGroups(playerRoleCount);
+
+
+    // Helper function to remove a player from all role arrays
     const removeFromAllRoles = (playerId) => {
         tanks = tanks.filter(player => player.id !== playerId);
         healers = healers.filter(player => player.id !== playerId);
@@ -38,69 +51,42 @@ const createGroups = (players) => {
         augs = augs.filter(player => player.id !== playerId);
     };
 
-    // Function to check if a player has multiple roles and prioritize assignment
-    const canAssignPlayerToRole = (playerId, role) => {
-        const player = playerRoleCount[playerId];
-        if (!player || player.roles.length === 1) return true; // No duplicate roles or only one role
+    // Function to create a group
+    const createGroup = () => ({
+        Tank: null,
+        Healer: null,
+        DPS: [],
+    });
 
-        // If the player has multiple roles, prioritize their assignment
-        if (role === 'tank' && player.roles.includes('healer') && healers.length < tanks.length) {
-            return false; // Don't assign as Tank, we need them as a Healer
-        }
-
-        if (role === 'healer' && player.roles.includes('dps') && dps.length > healers.length) {
-            return false; // Don't assign as Healer, we need them more as DPS
-        }
-
-        if (role === 'dps' && player.roles.includes('aug') && augs.length < dps.length) {
-            return false; // Don't assign as DPS if Aug is more needed
-        }
-
-        return true; // If no conflicts, allow the assignment
-    };
-
-    // Main loop to create groups with the required 1 tank, 1 healer, 3 DPS
+    // Create groups until no full group can be formed
     while (tanks.length > 0 && healers.length > 0 && (dps.length + augs.length) >= 3) {
-        let group = {
-            Tank: null,
-            Healer: null,
-            DPS: []
-        };
+        let group = createGroup();
 
-        // Assign one Tank
+        // Assign a Tank
         if (tanks.length > 0) {
-            const tankCandidate = tanks.find(player => canAssignPlayerToRole(player.id, 'tank'));
-            if (tankCandidate) {
-                group.Tank = tankCandidate;
-                console.log(`Assigned ${group.Tank.username} as Tank`);
-                removeFromAllRoles(group.Tank.id);
-            }
+            group.Tank = tanks.shift();
+            removeFromAllRoles(group.Tank.id);
         }
 
-        // Assign one Healer
+        // Assign a Healer, prioritizing players who can also be DPS
         if (healers.length > 0) {
-            const healerCandidate = healers.find(player => canAssignPlayerToRole(player.id, 'healer'));
-            if (healerCandidate) {
-                group.Healer = healerCandidate;
-                console.log(`Assigned ${group.Healer.username} as Healer`);
-                removeFromAllRoles(group.Healer.id);
-            }
+            const healer = healers.shift();
+            group.Healer = healer;
+            removeFromAllRoles(group.Healer.id);
         }
 
-        // Assign 3 DPS (prioritizing Augs)
+        // Assign 1 Aug and 2 more DPS
         let augAdded = false;
         while (group.DPS.length < 3 && (dps.length > 0 || augs.length > 0)) {
             if (augs.length > 0 && !augAdded) {
-                const augCandidate = augs.shift();
-                console.log(`Assigned ${augCandidate.username} as DPS (Aug)`);
-                removeFromAllRoles(augCandidate.id);
-                group.DPS.push(augCandidate);
+                const aug = augs.shift();
+                group.DPS.push(aug);
+                removeFromAllRoles(aug.id);
                 augAdded = true;
             } else if (dps.length > 0) {
-                const dpsCandidate = dps.shift();
-                console.log(`Assigned ${dpsCandidate.username} as DPS`);
-                removeFromAllRoles(dpsCandidate.id);
-                group.DPS.push(dpsCandidate);
+                const dpsPlayer = dps.shift();
+                group.DPS.push(dpsPlayer);
+                removeFromAllRoles(dpsPlayer.id);
             }
         }
 
@@ -109,27 +95,25 @@ const createGroups = (players) => {
 
     // Handle leftover players (incomplete group)
     if (tanks.length > 0 || healers.length > 0 || dps.length > 0 || augs.length > 0) {
-        let leftoverGroup = {
-            Tank: tanks.length > 0 ? tanks.shift() : { username: 'No Tank Available' },
-            Healer: healers.length > 0 ? healers.shift() : { username: 'No Healer Available' },
-            DPS: []
-        };
+        let leftoverGroup = createGroup();
+
+        leftoverGroup.Tank = tanks.shift() || { username: 'No Tank Available' };
+        leftoverGroup.Healer = healers.shift() || { username: 'No Healer Available' };
 
         // Fill remaining DPS
         while (leftoverGroup.DPS.length < 3 && (dps.length > 0 || augs.length > 0)) {
             if (augs.length > 0) {
-                let aug = augs.shift();
-                console.log(`Assigned ${aug.username} to leftover group as DPS (Aug)`);
+                const aug = augs.shift();
                 leftoverGroup.DPS.push(aug);
+                removeFromAllRoles(aug.id);
             } else if (dps.length > 0) {
-                let selectedDPS = dps.shift();
-                console.log(`Assigned ${selectedDPS.username} to leftover group as DPS`);
-                leftoverGroup.DPS.push(selectedDPS);
+                const dpsPlayer = dps.shift();
+                leftoverGroup.DPS.push(dpsPlayer);
+                removeFromAllRoles(dpsPlayer.id);
             }
         }
 
         if (leftoverGroup.DPS.length > 0) {
-            console.log("Leftover group being added:", leftoverGroup);
             groups.push(leftoverGroup);
         }
     }
@@ -142,7 +126,7 @@ const createGroups = (players) => {
 
 
 const form = async (interaction, collection, options) => {
-    const id = options.getString('id');
+    const id = options.getString('id') || formid;
 
     const getEmojiForGroup = (group) => {
         switch (group) {
@@ -160,6 +144,7 @@ const form = async (interaction, collection, options) => {
     }
 
     collection.findOne({ id }).then((res) => {
+        const players = res.players;
         if (!res) {
             interaction.reply({
                 content: 'No groups found for the provided ID',
@@ -167,23 +152,38 @@ const form = async (interaction, collection, options) => {
             });
             return;
         }
-        if (tanks.length >= 1 && healers.length >= 1 && (dps.length + aug.length) >= 3) {
-            const groups = createGroups(res.players);
-
+        if (players.tanks.length >= 1 && players.healers.length >= 1 && (players.dps.length + players.aug.length) >= 3) {
+            const groups = createGroups(players);
             const fields = [];
 
             for (const [index, group] of groups.entries()) {
                 let message = '';
-                if (group.Tank) {
-                    message += `\n\n${getEmojiForGroup('tanks')} **Tank:** ${group.Tank.username}\n`;
+
+                const roles = {
+                    Tank: 'tanks',
+                    Healer: 'healers',
+                };
+
+                // Handle Tank and Healer first
+                for (const [role, emojiRole] of Object.entries(roles)) {
+                    const player = group[role];
+                    if (player) {
+                        const name = player.nickname || player.globalName;
+                        message += `${getEmojiForGroup(emojiRole)} **${role}:** ${name}\n`;
+                    }
                 }
-                if (group.Healer) {
-                    message += `${getEmojiForGroup('healers')} **Healer:** ${group.Healer.username}\n`;
+
+                // Handle multiple DPS players
+                if (group.DPS && Array.isArray(group.DPS)) {
+                    const dpsNames = group.DPS.map(dps => dps.nickname || dps.globalName).join(', ');
+                    message += `${getEmojiForGroup('dps')} **DPS:** ${dpsNames}\n`;
                 }
-                if (group.DPS) {
-                    message += `${getEmojiForGroup('dps')} **DPS:** ${group.DPS.map(dps => dps.username).join(', ')}\n`;
-                }
-                fields.push({ name: `Group ${index + 1}`, value: message, inline: false });
+
+                fields.push({
+                    name: `Group ${index + 1}`,
+                    value: message,
+                    inline: false
+                });
             }
 
             // Inside your interaction handling code
@@ -194,8 +194,22 @@ const form = async (interaction, collection, options) => {
                     fields
                 )
 
+            const buttons = {
+                type: 1,
+                components: [
+                    {
+                        type: 2,
+                        style: 3,
+                        customId: `reload:${id}`,
+                        label: 'Reload NOT WORKING : {'
+                    }
+                ]
+            };
+
+
             interaction.reply({
-                embeds: [embed]
+                embeds: [embed],
+                ephemeral: true,
             });
         } else {
             interaction.reply({
